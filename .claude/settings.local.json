@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(move srcmain.py backendsrcmain.py)",
+      "Bash(mv:*)",
+      "Bash(rmdir:*)",
+      "Bash(npm create:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
