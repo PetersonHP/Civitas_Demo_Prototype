@@ -1,6 +1,6 @@
-# Civitas Demo - Full Stack Application
+# Civitas Demo
 
-A modern full-stack application with FastAPI backend, PostgreSQL database, and React + Vite frontend.
+
 
 ## Tech Stack
 
