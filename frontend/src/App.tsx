@@ -1,5 +1,21 @@
 import { useState, useEffect } from 'react'
-import './App.css'
+import {
+  Box,
+  Button,
+  Container,
+  Heading,
+  Input,
+  VStack,
+  HStack,
+  Card,
+  CardBody,
+  Text,
+  Spinner,
+  IconButton,
+  useColorMode,
+  useColorModeValue,
+} from '@chakra-ui/react'
+import { DeleteIcon, MoonIcon, SunIcon } from '@chakra-ui/icons'
 import { apiService } from './services/api'
 
 interface Item {
@@ -16,6 +32,11 @@ function App() {
   const [error, setError] = useState<string | null>(null)
   const [newItemName, setNewItemName] = useState('')
   const [newItemDescription, setNewItemDescription] = useState('')
+
+  // Dark mode hooks
+  const { colorMode, toggleColorMode } = useColorMode()
+  const bgColor = useColorModeValue('gray.50', 'gray.900')
+  const cardBg = useColorModeValue('white', 'gray.800')
 
   useEffect(() => {
     fetchItems()
@@ -62,54 +83,120 @@ function App() {
   }
 
   return (
-    <div className="App">
-      <h1>Civitas Demo</h1>
-      <p>FastAPI + PostgreSQL + React + Vite</p>
+    <Box minH="100vh" bg={bgColor} py={8}>
+      <Container maxW="container.md">
+        <VStack spacing={8} align="stretch">
+          {/* Header with Dark Mode Toggle */}
+          <HStack justify="space-between" align="center">
+            <Box textAlign="center" flex={1}>
+              <Heading size="2xl" mb={2}>
+                Civitas Demo
+              </Heading>
+              <Text color="gray.500">
+                FastAPI + PostgreSQL + React + Vite + Chakra UI
+              </Text>
+            </Box>
+            <IconButton
+              aria-label="Toggle dark mode"
+              icon={colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
+              onClick={toggleColorMode}
+              size="lg"
+              variant="ghost"
+            />
+          </HStack>
 
-      {error && <div className="error">{error}</div>}
+          {/* Error Alert */}
+          {error && (
+            <Box bg="red.50" border="1px" borderColor="red.200" borderRadius="md" p={4}>
+              <Text color="red.700">{error}</Text>
+            </Box>
+          )}
 
-      <div className="create-item">
-        <h2>Create New Item</h2>
-        <form onSubmit={handleCreateItem}>
-          <input
-            type="text"
-            placeholder="Item name"
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Description (optional)"
-            value={newItemDescription}
-            onChange={(e) => setNewItemDescription(e.target.value)}
-          />
-          <button type="submit">Create Item</button>
-        </form>
-      </div>
+          {/* Create Item Form */}
+          <Card bg={cardBg}>
+            <CardBody>
+              <Heading size="lg" mb={4}>
+                Create New Item
+              </Heading>
+              <form onSubmit={handleCreateItem}>
+                <VStack spacing={4}>
+                  <Input
+                    placeholder="Item name"
+                    value={newItemName}
+                    onChange={(e) => setNewItemName(e.target.value)}
+                    required
+                    size="lg"
+                  />
+                  <Input
+                    placeholder="Description (optional)"
+                    value={newItemDescription}
+                    onChange={(e) => setNewItemDescription(e.target.value)}
+                    size="lg"
+                  />
+                  <Button
+                    type="submit"
+                    colorScheme="blue"
+                    size="lg"
+                    width="full"
+                  >
+                    Create Item
+                  </Button>
+                </VStack>
+              </form>
+            </CardBody>
+          </Card>
 
-      <div className="items-list">
-        <h2>Items</h2>
-        {loading ? (
-          <p>Loading...</p>
-        ) : items.length === 0 ? (
-          <p>No items yet. Create one above!</p>
-        ) : (
-          <ul>
-            {items.map((item) => (
-              <li key={item.id}>
-                <div>
-                  <strong>{item.name}</strong>
-                  {item.description && <p>{item.description}</p>}
-                  <small>Created: {new Date(item.created_at).toLocaleString()}</small>
-                </div>
-                <button onClick={() => handleDeleteItem(item.id)}>Delete</button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
+          {/* Items List */}
+          <Card bg={cardBg}>
+            <CardBody>
+              <Heading size="lg" mb={4}>
+                Items
+              </Heading>
+              {loading ? (
+                <Box textAlign="center" py={8}>
+                  <Spinner size="xl" color="blue.500" />
+                </Box>
+              ) : items.length === 0 ? (
+                <Text color="gray.500" textAlign="center" py={8}>
+                  No items yet. Create one above!
+                </Text>
+              ) : (
+                <VStack spacing={4} align="stretch">
+                  {items.map((item) => (
+                    <Card key={item.id} variant="outline">
+                      <CardBody>
+                        <HStack justify="space-between" align="start">
+                          <Box flex={1}>
+                            <Heading size="md" mb={2}>
+                              {item.name}
+                            </Heading>
+                            {item.description && (
+                              <Text color="gray.600" mb={2}>
+                                {item.description}
+                              </Text>
+                            )}
+                            <Text fontSize="sm" color="gray.500">
+                              Created: {new Date(item.created_at).toLocaleString()}
+                            </Text>
+                          </Box>
+                          <IconButton
+                            aria-label="Delete item"
+                            icon={<DeleteIcon />}
+                            colorScheme="red"
+                            variant="ghost"
+                            onClick={() => handleDeleteItem(item.id)}
+                          />
+                        </HStack>
+                      </CardBody>
+                    </Card>
+                  ))}
+                </VStack>
+              )}
+            </CardBody>
+          </Card>
+        </VStack>
+      </Container>
+    </Box>
   )
 }
 
