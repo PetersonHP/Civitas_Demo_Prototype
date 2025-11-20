@@ -8,6 +8,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from src.database import Base
+from src.models import example  # Import models so Alembic can detect them
 
 # Load environment variables from .env file
 load_dotenv()
