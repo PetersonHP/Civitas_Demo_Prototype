@@ -6,9 +6,11 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
+import geoalchemy2  # noqa: F401 - Import for PostGIS geometry support in migrations
 
 from src.database import Base
 from src.models import example  # Import models so Alembic can detect them
+from src.models import civitas  # noqa: F401 - Import civitas models for Alembic autogenerate
 
 # Load environment variables from .env file
 load_dotenv()
