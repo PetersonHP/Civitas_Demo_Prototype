@@ -10,7 +10,7 @@ import { calculateBounds, isValidCoordinates } from '../utils/mapHelpers'
 interface MapViewProps {
   tickets: Ticket[]
   selectedTicket: Ticket | null
-  onTicketSelect: (ticket: Ticket) => void
+  onTicketSelect: (ticket: Ticket | null) => void
 }
 
 /**
@@ -107,6 +107,7 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
         {...viewState}
         onMove={(evt: any) => setViewState(evt.viewState)}
         onLoad={() => setMapLoaded(true)}
+        onClick={() => onTicketSelect(null)}
         mapStyle="mapbox://styles/mapbox/dark-v11"
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESS_TOKEN}
         onError={(error: any) => {

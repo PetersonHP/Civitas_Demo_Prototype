@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Box,
   Flex,
@@ -86,37 +86,37 @@ const TicketCard = ({ ticket, onClick, isSelected }: TicketCardProps) => {
       _hover={{ shadow: 'md' }}
       transition="all 0.2s"
     >
-      <CardBody p={4}>
-        <VStack align="stretch" spacing={2}>
+      <CardBody p={3}>
+        <VStack align="stretch" spacing={1.5}>
           {/* Subject */}
-          <Heading size="sm" noOfLines={2}>
+          <Heading size="xs" noOfLines={2}>
             {ticket.ticket_subject}
           </Heading>
 
           {/* Body preview */}
-          <Text fontSize="sm" color="gray.600" noOfLines={3}>
+          <Text fontSize="xs" color="gray.600" noOfLines={3}>
             {truncateText(ticket.ticket_body, 120)}
           </Text>
 
           {/* Status and Priority */}
-          <HStack spacing={2}>
-            <Badge colorScheme={getStatusColor(ticket.status)} fontSize="xs">
+          <HStack spacing={1.5}>
+            <Badge colorScheme={getStatusColor(ticket.status)} fontSize="2xs">
               {formatStatus(ticket.status)}
             </Badge>
-            <Badge colorScheme={getPriorityColor(ticket.priority)} fontSize="xs">
+            <Badge colorScheme={getPriorityColor(ticket.priority)} fontSize="2xs">
               {formatPriority(ticket.priority)}
             </Badge>
           </HStack>
 
           {/* Labels with custom colors */}
           {labels.length > 0 && (
-            <HStack spacing={1} wrap="wrap">
+            <HStack spacing={0.8} wrap="wrap">
               {labels.map((label: Label) => (
                 <Badge
                   key={label.label_id}
                   style={{ backgroundColor: label.color_hex }}
                   color="white"
-                  fontSize="xs"
+                  fontSize="2xs"
                 >
                   {label.label_name}
                 </Badge>
@@ -125,7 +125,7 @@ const TicketCard = ({ ticket, onClick, isSelected }: TicketCardProps) => {
           )}
 
           {/* Report date */}
-          <Text fontSize="xs" color="gray.500">
+          <Text fontSize="2xs" color="gray.500">
             {new Date(ticket.time_created).toLocaleDateString()} {new Date(ticket.time_created).toLocaleTimeString()}
           </Text>
         </VStack>
@@ -138,11 +138,17 @@ export const TicketDashboard = () => {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | TicketWithRelations | null>(null)
 
   // Filter states
   const [selectedStatus, setSelectedStatus] = useState<TicketStatus | undefined>(undefined)
   const [selectedPriority, setSelectedPriority] = useState<TicketPriority | undefined>(undefined)
+
+  // Validate that selected ticket exists in current filtered list
+  const isSelectedTicketVisible = useMemo(
+    () => selectedTicket ? tickets.some(t => t.ticket_id === selectedTicket.ticket_id) : false,
+    [selectedTicket, tickets]
+  )
 
   const headerBg = useColorModeValue('white', 'gray.800')
   const filterBg = useColorModeValue('white', 'gray.800')
@@ -161,6 +167,12 @@ export const TicketDashboard = () => {
         })
 
         setTickets(ticketList)
+
+        // Clear selection if the selected ticket is no longer in the filtered results
+        if (selectedTicket && !ticketList.some(t => t.ticket_id === selectedTicket.ticket_id)) {
+          setSelectedTicket(null)
+        }
+
         setError(null)
       } catch (err) {
         setError('Failed to fetch tickets. Make sure the backend is running.')
@@ -180,17 +192,17 @@ export const TicketDashboard = () => {
         bg={headerBg}
         borderBottom="1px"
         borderColor="gray.200"
-        p={4}
+        p={3}
         shadow="sm"
       >
-        <HStack spacing={4}>
+        <HStack spacing={3}>
           <Image
             src="/Civitas_white.png"
             alt="Civitas Logo"
-            h="40px"
+            h="32px"
             objectFit="contain"
           />
-          <Heading size="lg">Dispatcher Dashboard</Heading>
+          <Heading size="md">Dispatcher Dashboard</Heading>
         </HStack>
       </Box>
 
@@ -201,19 +213,20 @@ export const TicketDashboard = () => {
           bg={filterBg}
           borderBottom="1px"
           borderColor="gray.200"
-          py={2}
-          px={4}
+          py={1.5}
+          px={3}
         >
           <Flex justify="left">
-            <HStack spacing={6}>
-              <HStack spacing={2}>
-                <FormLabel fontSize="sm" mb={0}>Status</FormLabel>
+            <HStack spacing={4.5}>
+              <HStack spacing={1.5}>
+                <FormLabel fontSize="xs" mb={0}>Status</FormLabel>
                 <Select
                   placeholder="All statuses"
                   value={selectedStatus || ''}
                   onChange={(e) => setSelectedStatus(e.target.value as TicketStatus || undefined)}
-                  size="sm"
-                  w="180px"
+                  size="xs"
+                  w="144px"
+                  fontSize="xs"
                 >
                   {Object.values(TicketStatus).map(status => (
                     <option key={status} value={status}>
@@ -222,14 +235,15 @@ export const TicketDashboard = () => {
                   ))}
                 </Select>
               </HStack>
-              <HStack spacing={2}>
-                <FormLabel fontSize="sm" mb={0}>Priority</FormLabel>
+              <HStack spacing={1.5}>
+                <FormLabel fontSize="xs" mb={0}>Priority</FormLabel>
                 <Select
                   placeholder="All priorities"
                   value={selectedPriority || ''}
                   onChange={(e) => setSelectedPriority(e.target.value as TicketPriority || undefined)}
-                  size="sm"
-                  w="180px"
+                  size="xs"
+                  w="144px"
+                  fontSize="xs"
                 >
                   {Object.values(TicketPriority).map(priority => (
                     <option key={priority} value={priority}>
@@ -245,7 +259,7 @@ export const TicketDashboard = () => {
         <Flex flex={1} overflow="hidden">
           {/* Left side - Ticket list (25%) */}
           <Box
-            w="33%"
+            w="30%"
             borderRight="1px"
             borderColor="gray.200"
             overflowY="auto"
@@ -265,13 +279,17 @@ export const TicketDashboard = () => {
                 No tickets match the current filters
               </Text>
             ) : (
-              <VStack spacing={3} align="stretch">
+              <VStack spacing={2.5} align="stretch">
                 {tickets.map((ticket) => (
                   <TicketCard
                     key={ticket.ticket_id}
                     ticket={ticket}
-                    onClick={setSelectedTicket}
-                    isSelected={selectedTicket?.ticket_id === ticket.ticket_id}
+                    onClick={(ticket) => {
+                      setSelectedTicket(
+                        selectedTicket?.ticket_id === ticket.ticket_id ? null : ticket
+                      )
+                    }}
+                    isSelected={isSelectedTicketVisible && selectedTicket?.ticket_id === ticket.ticket_id}
                   />
                 ))}
               </VStack>
@@ -282,7 +300,7 @@ export const TicketDashboard = () => {
           <Box flex={1} position="relative">
             <MapView
               tickets={tickets}
-              selectedTicket={selectedTicket}
+              selectedTicket={isSelectedTicketVisible ? selectedTicket : null}
               onTicketSelect={setSelectedTicket}
             />
           </Box>
