@@ -65,7 +65,7 @@ interface TicketCardProps {
 
 const TicketCard = ({ ticket, onOpenTicket }: TicketCardProps) => {
   const cardBg = useColorModeValue('white', 'gray.800')
-  const borderColor = useColorModeValue('gray.200', 'gray.600')
+  const borderColor = useColorModeValue('transparent', 'transparent')
 
   // Truncate body text to fit in card
   const truncateText = (text: string, maxLength: number) => {
@@ -99,7 +99,7 @@ const TicketCard = ({ ticket, onOpenTicket }: TicketCardProps) => {
           </Text>
 
           {/* Body preview */}
-          <Text fontSize="xs" color="gray.600" noOfLines={3}>
+          <Text fontSize="xs" color="gray.400" noOfLines={3}>
             {truncateText(ticket.ticket_body, 120)}
           </Text>
 
@@ -144,8 +144,8 @@ export const TicketDashboard = () => {
   const [selectedStatus, setSelectedStatus] = useState<TicketStatus | undefined>(undefined)
   const [selectedPriority, setSelectedPriority] = useState<TicketPriority | undefined>(undefined)
 
-  const headerBg = useColorModeValue('white', 'gray.800')
-  const filterBg = useColorModeValue('white', 'gray.800')
+  const headerBg = useColorModeValue('white', '#4b2e83')
+  const filterBg = useColorModeValue('white', 'gray.700')
   const listBg = useColorModeValue('gray.50', 'gray.900')
 
   // Fetch tickets when filters change
@@ -179,7 +179,7 @@ export const TicketDashboard = () => {
       <Box
         bg={headerBg}
         borderBottom="1px"
-        borderColor="gray.200"
+        borderColor="transparent"
         p={3}
         shadow="sm"
       >
@@ -200,7 +200,7 @@ export const TicketDashboard = () => {
         <Box
           bg={filterBg}
           borderBottom="1px"
-          borderColor="gray.200"
+          borderColor="transparent"
           py={1.5}
           px={3}
         >
@@ -249,7 +249,7 @@ export const TicketDashboard = () => {
           <Box
             w="50%"
             borderRight="1px"
-            borderColor="gray.200"
+            borderColor="transparent"
             overflowY="auto"
             bg={listBg}
             p={4}
