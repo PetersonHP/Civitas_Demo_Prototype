@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Box,
   Flex,
@@ -14,7 +14,9 @@ import {
   Select,
   FormLabel,
   useColorModeValue,
+  Button,
 } from '@chakra-ui/react'
+import { ArrowBackIcon } from '@chakra-ui/icons'
 import {
   ticketService,
   Ticket,
@@ -57,15 +59,12 @@ const formatPriority = (priority: string): string => {
 
 interface TicketCardProps {
   ticket: Ticket | TicketWithRelations
-  onClick: (ticket: Ticket | TicketWithRelations) => void
-  isSelected: boolean
+  onOpenTicket: (ticket: Ticket | TicketWithRelations) => void
 }
 
-const TicketCard = ({ ticket, onClick, isSelected }: TicketCardProps) => {
+const TicketCard = ({ ticket, onOpenTicket }: TicketCardProps) => {
   const cardBg = useColorModeValue('white', 'gray.800')
-  const selectedBg = useColorModeValue('blue.50', 'blue.900')
   const borderColor = useColorModeValue('gray.200', 'gray.600')
-  const selectedBorderColor = useColorModeValue('blue.500', 'blue.400')
 
   // Truncate body text to fit in card
   const truncateText = (text: string, maxLength: number) => {
@@ -78,13 +77,14 @@ const TicketCard = ({ ticket, onClick, isSelected }: TicketCardProps) => {
 
   return (
     <Card
-      bg={isSelected ? selectedBg : cardBg}
+      bg={cardBg}
       borderWidth="1px"
-      borderColor={isSelected ? selectedBorderColor : borderColor}
+      borderColor={borderColor}
       cursor="pointer"
-      onClick={() => onClick(ticket)}
+      onClick={() => onOpenTicket(ticket)}
       _hover={{ shadow: 'md' }}
       transition="all 0.2s"
+      position="relative"
     >
       <CardBody p={3}>
         <VStack align="stretch" spacing={1.5}>
@@ -92,6 +92,10 @@ const TicketCard = ({ ticket, onClick, isSelected }: TicketCardProps) => {
           <Heading size="xs" noOfLines={2}>
             {ticket.ticket_subject}
           </Heading>
+          {/* Report date */}
+          <Text fontSize="2xs" color="gray.500">
+            Reported on {new Date(ticket.time_created).toLocaleDateString()} {new Date(ticket.time_created).toLocaleTimeString()}
+          </Text>
 
           {/* Body preview */}
           <Text fontSize="xs" color="gray.600" noOfLines={3}>
@@ -123,11 +127,6 @@ const TicketCard = ({ ticket, onClick, isSelected }: TicketCardProps) => {
               ))}
             </HStack>
           )}
-
-          {/* Report date */}
-          <Text fontSize="2xs" color="gray.500">
-            {new Date(ticket.time_created).toLocaleDateString()} {new Date(ticket.time_created).toLocaleTimeString()}
-          </Text>
         </VStack>
       </CardBody>
     </Card>
@@ -138,17 +137,11 @@ export const TicketDashboard = () => {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | TicketWithRelations | null>(null)
+  const [openedTicket, setOpenedTicket] = useState<Ticket | TicketWithRelations | null>(null)
 
   // Filter states
   const [selectedStatus, setSelectedStatus] = useState<TicketStatus | undefined>(undefined)
   const [selectedPriority, setSelectedPriority] = useState<TicketPriority | undefined>(undefined)
-
-  // Validate that selected ticket exists in current filtered list
-  const isSelectedTicketVisible = useMemo(
-    () => selectedTicket ? tickets.some(t => t.ticket_id === selectedTicket.ticket_id) : false,
-    [selectedTicket, tickets]
-  )
 
   const headerBg = useColorModeValue('white', 'gray.800')
   const filterBg = useColorModeValue('white', 'gray.800')
@@ -167,12 +160,6 @@ export const TicketDashboard = () => {
         })
 
         setTickets(ticketList)
-
-        // Clear selection if the selected ticket is no longer in the filtered results
-        if (selectedTicket && !ticketList.some(t => t.ticket_id === selectedTicket.ticket_id)) {
-          setSelectedTicket(null)
-        }
-
         setError(null)
       } catch (err) {
         setError('Failed to fetch tickets. Make sure the backend is running.')
@@ -257,16 +244,51 @@ export const TicketDashboard = () => {
         </Box>
 
         <Flex flex={1} overflow="hidden">
-          {/* Left side - Ticket list (25%) */}
+          {/* Left side - Ticket list (50%) */}
           <Box
-            w="30%"
+            w="50%"
             borderRight="1px"
             borderColor="gray.200"
             overflowY="auto"
             bg={listBg}
             p={4}
           >
-            {loading ? (
+            {openedTicket ? (
+              /* Ticket detail view */
+              <VStack align="stretch" spacing={4}>
+                <Button
+                  leftIcon={<ArrowBackIcon />}
+                  onClick={() => setOpenedTicket(null)}
+                  colorScheme="blue"
+                  variant="outline"
+                  size="sm"
+                  alignSelf="flex-start"
+                >
+                </Button>
+                <Box>
+                  <Heading size="lg" mb={2}>
+                    {openedTicket.ticket_subject}
+                  </Heading>
+                  <Text fontSize="sm" color="gray.500" mb={4}>
+                    Ticket ID: {openedTicket.ticket_id}
+                  </Text>
+                  <HStack spacing={2} mb={4}>
+                    <Badge colorScheme={getStatusColor(openedTicket.status)}>
+                      {formatStatus(openedTicket.status)}
+                    </Badge>
+                    <Badge colorScheme={getPriorityColor(openedTicket.priority)}>
+                      {formatPriority(openedTicket.priority)}
+                    </Badge>
+                    <Text fontSize="sm" color="gray.500">
+                      Reported on {new Date(openedTicket.time_created).toLocaleDateString()} at {new Date(openedTicket.time_created).toLocaleTimeString()}
+                    </Text>
+                  </HStack>
+                  <Text mb={2} fontWeight="semibold"></Text>
+                  <Text mb={4}>{openedTicket.ticket_body}</Text>
+                  {/* Placeholder for additional ticket details */}
+                </Box>
+              </VStack>
+            ) : loading ? (
               <Flex justify="center" align="center" h="full">
                 <Spinner size="xl" color="blue.500" />
               </Flex>
@@ -284,24 +306,19 @@ export const TicketDashboard = () => {
                   <TicketCard
                     key={ticket.ticket_id}
                     ticket={ticket}
-                    onClick={(ticket) => {
-                      setSelectedTicket(
-                        selectedTicket?.ticket_id === ticket.ticket_id ? null : ticket
-                      )
-                    }}
-                    isSelected={isSelectedTicketVisible && selectedTicket?.ticket_id === ticket.ticket_id}
+                    onOpenTicket={setOpenedTicket}
                   />
                 ))}
               </VStack>
             )}
           </Box>
 
-          {/* Right side - Map view (75%) */}
+          {/* Right side - Map view (50%) */}
           <Box flex={1} position="relative">
             <MapView
-              tickets={tickets}
-              selectedTicket={isSelectedTicketVisible ? selectedTicket : null}
-              onTicketSelect={setSelectedTicket}
+              tickets={openedTicket ? [openedTicket] : tickets}
+              selectedTicket={openedTicket}
+              onTicketSelect={setOpenedTicket}
             />
           </Box>
         </Flex>

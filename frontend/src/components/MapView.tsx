@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react'
 import Map, { MapRef } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import { Box, Spinner, Text, Flex } from '@chakra-ui/react'
+import { Box, Spinner, Text, Flex, VStack, Checkbox } from '@chakra-ui/react'
 import { Ticket, SupportCrew } from '../services/ticketService'
 import { TicketMarker } from './TicketMarker'
 import { CrewMarker } from './CrewMarker'
@@ -26,6 +26,8 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
   const [mapLoaded, setMapLoaded] = useState(false)
   const [crews, setCrews] = useState<SupportCrew[]>([])
   const [selectedCrew, setSelectedCrew] = useState<SupportCrew | null>(null)
+  const [showTickets, setShowTickets] = useState(true)
+  const [showCrews, setShowCrews] = useState(true)
 
   const [viewState, setViewState] = useState({
     longitude: -98.5795, // Center of USA
@@ -131,6 +133,41 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
           <Spinner size="xl" color="blue.400" />
         </Flex>
       )}
+
+      {/* Map Layer Controls */}
+      <Box
+        position="absolute"
+        top={4}
+        right={4}
+        bg="gray.800"
+        borderRadius="md"
+        p={3}
+        boxShadow="lg"
+        zIndex={100}
+      >
+        <VStack align="start" spacing={3}>
+          <Text fontSize="sm" fontWeight="bold" color="gray.200">
+            Map Layers
+          </Text>
+          <VStack align="start" spacing={2}>
+            <Checkbox
+              isChecked={showTickets}
+              onChange={(e) => setShowTickets(e.target.checked)}
+              colorScheme="blue"
+            >
+              <Text fontSize="sm" color="gray.300">Show Tickets</Text>
+            </Checkbox>
+            <Checkbox
+              isChecked={showCrews}
+              onChange={(e) => setShowCrews(e.target.checked)}
+              colorScheme="purple"
+            >
+              <Text fontSize="sm" color="gray.300">Show Crews</Text>
+            </Checkbox>
+          </VStack>
+        </VStack>
+      </Box>
+
       <Map
         ref={mapRef}
         {...viewState}
@@ -148,7 +185,7 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
         }}
         style={{ width: '100%', height: '100%' }}
       >
-        {mapLoaded && ticketsWithCoords.map(ticket => (
+        {mapLoaded && showTickets && ticketsWithCoords.map(ticket => (
           <TicketMarker
             key={ticket.ticket_id}
             ticket={ticket}
@@ -156,7 +193,7 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
             onClick={onTicketSelect}
           />
         ))}
-        {mapLoaded && crewsWithCoords.map(crew => (
+        {mapLoaded && showCrews && crewsWithCoords.map(crew => (
           <CrewMarker
             key={crew.team_id}
             crew={crew}
