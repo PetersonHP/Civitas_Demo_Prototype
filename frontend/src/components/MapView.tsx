@@ -2,10 +2,12 @@ import { useEffect, useRef, useState, useMemo } from 'react'
 import Map, { MapRef } from 'react-map-gl/mapbox'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { Box, Spinner, Text, Flex } from '@chakra-ui/react'
-import { Ticket } from '../services/ticketService'
+import { Ticket, SupportCrew } from '../services/ticketService'
 import { TicketMarker } from './TicketMarker'
+import { CrewMarker } from './CrewMarker'
 import { useMapFlyTo } from '../hooks/useMapFlyTo'
 import { calculateBounds, isValidCoordinates } from '../utils/mapHelpers'
+import { crewService } from '../services/crewService'
 
 interface MapViewProps {
   tickets: Ticket[]
@@ -22,6 +24,8 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
   const { flyToLocation } = useMapFlyTo(mapRef)
   const [mapError, setMapError] = useState<string | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [crews, setCrews] = useState<SupportCrew[]>([])
+  const [selectedCrew, setSelectedCrew] = useState<SupportCrew | null>(null)
 
   const [viewState, setViewState] = useState({
     longitude: -98.5795, // Center of USA
@@ -35,6 +39,25 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
     [tickets]
   )
 
+  // Filter crews with valid coordinates
+  const crewsWithCoords = useMemo(
+    () => crews.filter(c => isValidCoordinates(c.location_coordinates)),
+    [crews]
+  )
+
+  // Fetch crews on mount
+  useEffect(() => {
+    const fetchCrews = async () => {
+      try {
+        const crewData = await crewService.getCrews()
+        setCrews(crewData)
+      } catch (error) {
+        console.error('Failed to fetch crews:', error)
+      }
+    }
+    fetchCrews()
+  }, [])
+
   // Check for API token on mount
   useEffect(() => {
     const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN
@@ -43,18 +66,24 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
     }
   }, [])
 
-  // Fit bounds to all tickets on mount or when tickets change
+  // Fit bounds to all tickets and crews on mount or when data changes
   useEffect(() => {
-    if (!mapRef.current || !mapLoaded || ticketsWithCoords.length === 0) return
+    if (!mapRef.current || !mapLoaded) return
 
-    const coords = ticketsWithCoords.map(t => t.location_coordinates!)
-    const bounds = calculateBounds(coords)
+    const allCoords = [
+      ...ticketsWithCoords.map(t => t.location_coordinates!),
+      ...crewsWithCoords.map(c => c.location_coordinates!)
+    ]
+
+    if (allCoords.length === 0) return
+
+    const bounds = calculateBounds(allCoords)
 
     if (bounds) {
-      // Handle single ticket case with appropriate zoom
-      if (ticketsWithCoords.length === 1) {
+      // Handle single point case with appropriate zoom
+      if (allCoords.length === 1) {
         mapRef.current.flyTo({
-          center: [coords[0].lng, coords[0].lat],
+          center: [allCoords[0].lng, allCoords[0].lat],
           zoom: 12,
           duration: 1000
         })
@@ -66,7 +95,7 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
         })
       }
     }
-  }, [ticketsWithCoords, mapLoaded])
+  }, [ticketsWithCoords, crewsWithCoords, mapLoaded])
 
   // Fly to selected ticket when selection changes
   useEffect(() => {
@@ -107,7 +136,10 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
         {...viewState}
         onMove={(evt: any) => setViewState(evt.viewState)}
         onLoad={() => setMapLoaded(true)}
-        onClick={() => onTicketSelect(null)}
+        onClick={() => {
+          onTicketSelect(null)
+          setSelectedCrew(null)
+        }}
         mapStyle="mapbox://styles/mapbox/dark-v11"
         mapboxAccessToken={import.meta.env.VITE_MAPBOX_ACCESS_TOKEN}
         onError={(error: any) => {
@@ -122,6 +154,14 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
             ticket={ticket}
             isSelected={selectedTicket?.ticket_id === ticket.ticket_id}
             onClick={onTicketSelect}
+          />
+        ))}
+        {mapLoaded && crewsWithCoords.map(crew => (
+          <CrewMarker
+            key={crew.team_id}
+            crew={crew}
+            isSelected={selectedCrew?.team_id === crew.team_id}
+            onClick={setSelectedCrew}
           />
         ))}
       </Map>

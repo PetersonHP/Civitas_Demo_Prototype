@@ -1,0 +1,13 @@
+team_name,description,crew_type,status,lat,lng
+Alpha Pothole Repair Team,Specialized crew for rapid pothole repairs in Manhattan,pothole crew,active,40.7580,-73.9855
+Bravo Pothole Repair Team,Specialized crew for rapid pothole repairs in Brooklyn,pothole crew,active,40.6782,-73.9442
+Charlie Drain Maintenance Team,Expert team handling storm drain maintenance in Queens,drain crew,active,40.7282,-73.7949
+Delta Drain Maintenance Team,Expert team handling storm drain maintenance in Bronx,drain crew,active,40.8448,-73.8648
+Echo Tree Service Team,Certified arborists for tree trimming in Staten Island,tree crew,active,40.5795,-74.1502
+Foxtrot Tree Service Team,Certified arborists for tree trimming in Manhattan,tree crew,active,40.7614,-73.9776
+Golf Sign Crew,Crew responsible for traffic sign installation in Brooklyn,sign crew,active,40.6501,-73.9496
+Hotel Sign Crew,Crew responsible for traffic sign installation in Queens,sign crew,active,40.7489,-73.8683
+India Snow Removal Team,24/7 snow removal and de-icing operations in Bronx,snow crew,active,40.8308,-73.9262
+Juliet Snow Removal Team,24/7 snow removal and de-icing operations in Staten Island,snow crew,active,40.6093,-74.1330
+Kilo Sanitation Team,Waste collection and disposal specialists in Manhattan,sanitation crew,active,40.7829,-73.9654
+Lima Sanitation Team,Waste collection and disposal specialists in Queens,sanitation crew,active,40.7061,-73.9194

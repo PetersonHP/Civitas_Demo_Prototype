@@ -1,5 +1,6 @@
 import { TicketPriority } from '../services/ticketService'
 import type { LocationCoordinates } from '../services/ticketService'
+import { SupportCrewType } from '../services/crewService'
 
 /**
  * Get marker color based on ticket priority
@@ -66,4 +67,22 @@ export const calculateBounds = (
   }
 
   return [[minLng, minLat], [maxLng, maxLat]]
+}
+
+/**
+ * Get crew type icon as SVG element
+ * Returns JSX-compatible SVG path data for rendering crew type icons
+ */
+export const getCrewTypeIcon = (crewType: string): React.ReactNode => {
+  // SVG icon content will be rendered directly in the CrewMarker component
+  // This function returns the appropriate icon identifier
+  const icons: Record<string, string> = {
+    'pothole crew': 'construction',
+    'drain crew': 'water',
+    'tree crew': 'tree',
+    'sign crew': 'sign',
+    'snow crew': 'snow',
+    'sanitation crew': 'trash',
+  }
+  return icons[crewType] || 'tools'
 }

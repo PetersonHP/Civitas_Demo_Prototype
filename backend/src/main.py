@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import get_settings
-from .routers import items, tickets
+from .routers import items, tickets, crews
 
 settings = get_settings()
 
@@ -24,6 +24,7 @@ app.add_middleware(
 # Include routers
 app.include_router(items.router, prefix="/api")
 app.include_router(tickets.router, prefix="/api")
+app.include_router(crews.router, prefix="/api")
 
 
 @app.get("/")
