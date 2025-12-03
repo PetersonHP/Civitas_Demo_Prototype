@@ -64,7 +64,7 @@ interface TicketCardProps {
 }
 
 const TicketCard = ({ ticket, onOpenTicket }: TicketCardProps) => {
-  const cardBg = useColorModeValue('white', 'gray.800')
+  const cardBg = useColorModeValue('white', 'gray.700')
   const borderColor = useColorModeValue('transparent', 'transparent')
 
   // Truncate body text to fit in card
@@ -144,7 +144,8 @@ export const TicketDashboard = () => {
   const [selectedStatus, setSelectedStatus] = useState<TicketStatus | undefined>(undefined)
   const [selectedPriority, setSelectedPriority] = useState<TicketPriority | undefined>(undefined)
 
-  const headerBg = useColorModeValue('white', '#4b2e83')
+  const headerBg = useColorModeValue('white', 'gray.700')
+  const civitasBg = useColorModeValue('white', '#4b2e83')
   const filterBg = useColorModeValue('white', 'gray.700')
   const listBg = useColorModeValue('gray.50', 'gray.900')
 
@@ -176,23 +177,25 @@ export const TicketDashboard = () => {
   return (
     <Flex direction="column" h="100vh">
       {/* Header */}
-      <Box
-        bg={headerBg}
-        borderBottom="1px"
-        borderColor="transparent"
-        p={3}
-        shadow="sm"
-      >
-        <HStack spacing={3}>
-          <Image
-            src="/Civitas_white.png"
-            alt="Civitas Logo"
-            h="32px"
-            objectFit="contain"
-          />
-          <Heading size="md">Dispatcher Dashboard</Heading>
-        </HStack>
-      </Box>
+      <HStack spacing={3}>
+        <Box
+          bg={civitasBg}
+          p={3}
+          display="flex"
+          alignItems="center"
+        >
+          <HStack spacing={3} align="center" direction="row">
+            <Image
+              src="/Civitas_white.png"
+              alt="Civitas Logo"
+              h="32px"
+              objectFit="contain"
+            />
+            <Heading size="md">CIVITAS</Heading>
+          </HStack>
+        </Box>
+        <Text fontSize="sm" color="gray.300">Dispatcher Control Center</Text>
+      </HStack>
 
       {/* Main content area */}
       <Flex direction="column" flex={1} overflow="hidden">
@@ -270,8 +273,8 @@ export const TicketDashboard = () => {
                   <Heading size="lg" mb={2}>
                     {openedTicket.ticket_subject}
                   </Heading>
-                  <Text fontSize="sm" color="gray.500" mb={4}>
-                    Ticket ID: {openedTicket.ticket_id}
+                  <Text mb={2} fontSize="sm" color="gray.500">
+                    Reported on {new Date(openedTicket.time_created).toLocaleDateString()} at {new Date(openedTicket.time_created).toLocaleTimeString()}
                   </Text>
                   <HStack spacing={2} mb={4}>
                     <Badge colorScheme={getStatusColor(openedTicket.status)}>
@@ -280,12 +283,12 @@ export const TicketDashboard = () => {
                     <Badge colorScheme={getPriorityColor(openedTicket.priority)}>
                       {formatPriority(openedTicket.priority)}
                     </Badge>
-                    <Text fontSize="sm" color="gray.500">
-                      Reported on {new Date(openedTicket.time_created).toLocaleDateString()} at {new Date(openedTicket.time_created).toLocaleTimeString()}
-                    </Text>
                   </HStack>
                   <Text mb={2} fontWeight="semibold"></Text>
                   <Text mb={4}>{openedTicket.ticket_body}</Text>
+                  <Text fontSize="sm" color="gray.500" mb={4}>
+                    Ticket ID: {openedTicket.ticket_id}
+                  </Text>
 
                   {/* Comments Section */}
                   <CommentSection

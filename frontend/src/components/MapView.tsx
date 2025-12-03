@@ -27,7 +27,7 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
   const [crews, setCrews] = useState<SupportCrew[]>([])
   const [selectedCrew, setSelectedCrew] = useState<SupportCrew | null>(null)
   const [showTickets, setShowTickets] = useState(true)
-  const [showCrews, setShowCrews] = useState(true)
+  const [showCrews, setShowCrews] = useState(false)
 
   const [viewState, setViewState] = useState({
     longitude: -98.5795, // Center of USA

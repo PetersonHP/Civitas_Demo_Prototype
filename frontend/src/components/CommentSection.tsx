@@ -68,7 +68,7 @@ export const CommentSection = ({ ticketId, userId }: CommentSectionProps) => {
   const [commentBody, setCommentBody] = useState('')
 
   const sectionBg = useColorModeValue('gray.50', 'gray.800')
-  const editorBg = useColorModeValue('#ffffff', '#2d3748')
+  const editorBg = useColorModeValue('white', 'gray.700')
   const editorTextColor = useColorModeValue('#000000', '#e2e8f0')
   const editorBorderColor = useColorModeValue('#e2e8f0', '#4a5568')
   const editorButtonHover = useColorModeValue('#e2e8f0', '#4a5568')
