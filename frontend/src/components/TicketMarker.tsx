@@ -18,8 +18,6 @@ export const TicketMarker = ({ ticket, isSelected, onClick }: TicketMarkerProps)
 
   const markerColor = getPriorityMarkerColor(ticket.priority)
   const size = isSelected ? 32 : 24
-  const strokeWidth = isSelected ? 3 : 2
-  const strokeColor = isSelected ? '#3182CE' : '#fff' // Chakra blue.600 for selected
   const opacity = 0.75 // 75% opacity
 
   const formatStatus = (status: string): string => {

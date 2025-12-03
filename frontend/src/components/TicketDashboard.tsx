@@ -26,6 +26,7 @@ import {
   Label,
 } from '../services/ticketService'
 import { MapView } from './MapView'
+import { CommentSection } from './CommentSection'
 
 // Color coding for status
 const getStatusColor = (status: TicketStatus): string => {
@@ -285,7 +286,12 @@ export const TicketDashboard = () => {
                   </HStack>
                   <Text mb={2} fontWeight="semibold"></Text>
                   <Text mb={4}>{openedTicket.ticket_body}</Text>
-                  {/* Placeholder for additional ticket details */}
+
+                  {/* Comments Section */}
+                  <CommentSection
+                    ticketId={openedTicket.ticket_id}
+                    userId="b3cdcf8f-3c7a-4001-b7fb-646e909d2fa9"
+                  />
                 </Box>
               </VStack>
             ) : loading ? (
