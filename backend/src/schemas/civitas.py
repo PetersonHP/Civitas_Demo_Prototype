@@ -142,7 +142,7 @@ class TicketBase(BaseModel):
 
 class TicketCreate(TicketBase):
     """Schema for creating a new ticket."""
-    reporter_id: UUID
+    reporter_id: Optional[UUID] = None
     user_assignee_ids: List[UUID] = Field(default_factory=list)
     crew_assignee_ids: List[UUID] = Field(default_factory=list)
     label_ids: List[UUID] = Field(default_factory=list)
