@@ -54,6 +54,104 @@ def deserialize_location(coords: dict) -> WKTElement:
     return WKTElement(f"POINT({coords['lng']} {coords['lat']})", srid=4326)
 
 
+def create_update_log(ticket: TicketModel, user_id: UUID, changes: dict, db: Session):
+    """
+    Create an update log for ticket changes.
+
+    Args:
+        ticket: The ticket being updated
+        user_id: The user making the update
+        changes: Dictionary containing the changelog
+        db: Database session
+    """
+    if not changes:
+        return
+
+    update_log = UpdateLogModel(
+        ticket_id=ticket.ticket_id,
+        user_of_origin=user_id,
+        meta_data={"changes": changes}
+    )
+
+    db.add(update_log)
+
+
+def track_ticket_changes(
+    ticket: TicketModel,
+    ticket_data: TicketUpdate,
+    user_id: UUID,
+    db: Session
+) -> dict:
+    """
+    Track changes to a ticket and return a changelog.
+
+    Args:
+        ticket: The existing ticket
+        ticket_data: The update data
+        user_id: The user making the update
+        db: Database session
+
+    Returns:
+        Dictionary containing all changes
+    """
+    changes = {}
+
+    # Track status change
+    if ticket_data.status is not None and ticket.status != ticket_data.status:
+        changes["status"] = {
+            "old": ticket.status.value,
+            "new": ticket_data.status.value
+        }
+
+    # Track priority change
+    if ticket_data.priority is not None and ticket.priority != ticket_data.priority:
+        changes["priority"] = {
+            "old": ticket.priority.value,
+            "new": ticket_data.priority.value
+        }
+
+    # Track user assignee changes
+    if ticket_data.user_assignee_ids is not None:
+        old_user_ids = {str(user.user_id) for user in ticket.user_assignees}
+        new_user_ids = {str(uid) for uid in ticket_data.user_assignee_ids}
+
+        if old_user_ids != new_user_ids:
+            added = list(new_user_ids - old_user_ids)
+            removed = list(old_user_ids - new_user_ids)
+            changes["user_assignees"] = {
+                "added": added,
+                "removed": removed
+            }
+
+    # Track crew assignee changes
+    if ticket_data.crew_assignee_ids is not None:
+        old_crew_ids = {str(crew.team_id) for crew in ticket.crew_assignees}
+        new_crew_ids = {str(cid) for cid in ticket_data.crew_assignee_ids}
+
+        if old_crew_ids != new_crew_ids:
+            added = list(new_crew_ids - old_crew_ids)
+            removed = list(old_crew_ids - new_crew_ids)
+            changes["crew_assignees"] = {
+                "added": added,
+                "removed": removed
+            }
+
+    # Track label changes
+    if ticket_data.label_ids is not None:
+        old_label_ids = {str(label.label_id) for label in ticket.labels}
+        new_label_ids = {str(lid) for lid in ticket_data.label_ids}
+
+        if old_label_ids != new_label_ids:
+            added = list(new_label_ids - old_label_ids)
+            removed = list(old_label_ids - new_label_ids)
+            changes["labels"] = {
+                "added": added,
+                "removed": removed
+            }
+
+    return changes
+
+
 @router.get("/{ticket_id}", response_model=TicketWithRelations)
 def get_ticket_by_id(ticket_id: UUID, db: Session = Depends(get_db)):
     """
@@ -84,17 +182,28 @@ def get_ticket_by_id(ticket_id: UUID, db: Session = Depends(get_db)):
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
-    # Serialize the location coordinates
+    # Serialize the location coordinates for the ticket
     ticket_dict = {
         **ticket.__dict__,
         "location_coordinates": serialize_location(ticket.location_coordinates)
     }
 
+    # Serialize location coordinates for crew assignees
+    if ticket.crew_assignees:
+        serialized_crews = []
+        for crew in ticket.crew_assignees:
+            crew_dict = {
+                **crew.__dict__,
+                "location_coordinates": serialize_location(crew.location_coordinates)
+            }
+            serialized_crews.append(crew_dict)
+        ticket_dict["crew_assignees"] = serialized_crews
+
     # Convert to response model
     return ticket_dict
 
 
-@router.get("/", response_model=List[Ticket])
+@router.get("/", response_model=List[TicketWithRelations])
 def get_tickets(
     skip: int = 0,
     limit: int = 100,
@@ -113,13 +222,18 @@ def get_tickets(
         db: Database session
 
     Returns:
-        List of tickets ordered by time_updated (descending)
+        List of tickets with relations ordered by time_updated (descending)
     """
     # Limit max page size
     if limit > 100:
         limit = 100
 
-    query = db.query(TicketModel)
+    query = db.query(TicketModel).options(
+        selectinload(TicketModel.user_assignees),
+        selectinload(TicketModel.crew_assignees),
+        selectinload(TicketModel.reporter),
+        selectinload(TicketModel.labels)
+    )
 
     # Filter by status if provided
     if status is not None:
@@ -139,13 +253,25 @@ def get_tickets(
         .all()
     )
 
-    # Serialize location coordinates for each ticket
+    # Serialize location coordinates for each ticket and crew
     result = []
     for ticket in tickets:
         ticket_dict = {
             **ticket.__dict__,
             "location_coordinates": serialize_location(ticket.location_coordinates)
         }
+
+        # Serialize location coordinates for crew assignees
+        if ticket.crew_assignees:
+            serialized_crews = []
+            for crew in ticket.crew_assignees:
+                crew_dict = {
+                    **crew.__dict__,
+                    "location_coordinates": serialize_location(crew.location_coordinates)
+                }
+                serialized_crews.append(crew_dict)
+            ticket_dict["crew_assignees"] = serialized_crews
+
         result.append(ticket_dict)
 
     return result
@@ -230,14 +356,16 @@ def create_ticket(
 def update_ticket(
     ticket_id: UUID,
     ticket_data: TicketUpdate,
+    user_id: Optional[UUID] = None,
     db: Session = Depends(get_db)
 ):
     """
-    Update a ticket.
+    Update a ticket and automatically create an update log.
 
     Args:
         ticket_id: The UUID of the ticket to update
         ticket_data: The updated ticket data
+        user_id: Optional UUID of the user making the update (for logging)
         db: Database session
 
     Returns:
@@ -246,10 +374,26 @@ def update_ticket(
     Raises:
         HTTPException: 404 if ticket not found, 400 if invalid references
     """
-    ticket = db.query(TicketModel).filter(TicketModel.ticket_id == ticket_id).first()
+    # Load ticket with relationships for change tracking
+    ticket = (
+        db.query(TicketModel)
+        .options(
+            selectinload(TicketModel.user_assignees),
+            selectinload(TicketModel.crew_assignees),
+            selectinload(TicketModel.labels)
+        )
+        .filter(TicketModel.ticket_id == ticket_id)
+        .first()
+    )
 
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
+
+    # Track changes before updating
+    if user_id:
+        changes = track_ticket_changes(ticket, ticket_data, user_id, db)
+    else:
+        changes = {}
 
     # Update basic fields
     if ticket_data.ticket_subject is not None:
@@ -293,6 +437,10 @@ def update_ticket(
             raise HTTPException(status_code=400, detail="One or more labels not found")
         ticket.labels = labels
 
+    # Create update log if there are changes and user_id provided
+    if user_id and changes:
+        create_update_log(ticket, user_id, changes, db)
+
     db.commit()
     db.refresh(ticket)
 
@@ -309,14 +457,16 @@ def update_ticket(
 def update_ticket_status(
     ticket_id: UUID,
     status_update: TicketStatusUpdate,
+    user_id: Optional[UUID] = None,
     db: Session = Depends(get_db)
 ):
     """
-    Update the status of a ticket.
+    Update the status of a ticket and create an update log.
 
     Args:
         ticket_id: The UUID of the ticket to update
         status_update: The new status for the ticket
+        user_id: Optional UUID of the user making the update (for logging)
         db: Database session
 
     Returns:
@@ -329,6 +479,16 @@ def update_ticket_status(
 
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
+
+    # Track status change
+    if user_id and ticket.status != status_update.status:
+        changes = {
+            "status": {
+                "old": ticket.status.value,
+                "new": status_update.status.value
+            }
+        }
+        create_update_log(ticket, user_id, changes, db)
 
     # Update the status
     ticket.status = status_update.status
@@ -764,3 +924,103 @@ def remove_label_from_ticket(
         "location_coordinates": serialize_location(ticket.location_coordinates)
     }
     return ticket_dict
+
+
+# ============================================================================
+# Ticket Update Log Endpoints
+# ============================================================================
+
+@router.get("/{ticket_id}/update-logs", response_model=List[TicketUpdateLogWithUser])
+def get_ticket_update_logs(
+    ticket_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """
+    Get all update logs for a ticket.
+
+    Args:
+        ticket_id: The UUID of the ticket
+        db: Database session
+
+    Returns:
+        List of update logs with user details
+
+    Raises:
+        HTTPException: 404 if ticket not found
+    """
+    ticket = db.query(TicketModel).filter(TicketModel.ticket_id == ticket_id).first()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    update_logs = db.query(UpdateLogModel).filter(
+        UpdateLogModel.ticket_id == ticket_id
+    ).order_by(UpdateLogModel.time_created).all()
+
+    return update_logs
+
+
+@router.post("/{ticket_id}/update-logs", response_model=TicketUpdateLogWithUser, status_code=201)
+def create_ticket_update_log(
+    ticket_id: UUID,
+    log_data: TicketUpdateLogCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new update log for a ticket.
+
+    Args:
+        ticket_id: The UUID of the ticket
+        log_data: The update log data (including changelog in meta_data)
+        db: Database session
+
+    Returns:
+        Created update log
+
+    Raises:
+        HTTPException: 404 if ticket not found, 400 if user not found
+    """
+    ticket = db.query(TicketModel).filter(TicketModel.ticket_id == ticket_id).first()
+    if ticket is None:
+        raise HTTPException(status_code=404, detail="Ticket not found")
+
+    # Verify user exists
+    user = db.query(UserModel).filter(UserModel.user_id == log_data.user_of_origin).first()
+    if user is None:
+        raise HTTPException(status_code=400, detail="User not found")
+
+    update_log = UpdateLogModel(
+        ticket_id=ticket_id,
+        user_of_origin=log_data.user_of_origin,
+        meta_data=log_data.meta_data
+    )
+
+    db.add(update_log)
+    db.commit()
+    db.refresh(update_log)
+
+    return update_log
+
+
+@router.delete("/update-logs/{update_log_id}", status_code=204)
+def delete_ticket_update_log(
+    update_log_id: UUID,
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a ticket update log.
+
+    Args:
+        update_log_id: The UUID of the update log
+        db: Database session
+
+    Raises:
+        HTTPException: 404 if update log not found
+    """
+    update_log = db.query(UpdateLogModel).filter(UpdateLogModel.update_log_id == update_log_id).first()
+    if update_log is None:
+        raise HTTPException(status_code=404, detail="Update log not found")
+
+    db.delete(update_log)
+    db.commit()
+
+    return None

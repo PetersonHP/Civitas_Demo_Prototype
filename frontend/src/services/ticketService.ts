@@ -178,15 +178,15 @@ export const ticketService = {
   // ============================================================================
 
   /**
-   * Get paginated list of tickets
+   * Get paginated list of tickets with relations
    */
   getTickets: async (params?: {
     skip?: number
     limit?: number
     status?: TicketStatus
     priority?: TicketPriority
-  }): Promise<Ticket[]> => {
-    const response = await api.get<Ticket[]>('/api/tickets/', { params })
+  }): Promise<TicketWithRelations[]> => {
+    const response = await api.get<TicketWithRelations[]>('/api/tickets/', { params })
     return response.data
   },
 

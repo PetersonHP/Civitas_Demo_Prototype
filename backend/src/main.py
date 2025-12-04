@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import get_settings
-from .routers import items, tickets, crews
+from .routers import items, tickets, crews, users, labels, dispatcher
 
 settings = get_settings()
 
@@ -25,6 +25,9 @@ app.add_middleware(
 app.include_router(items.router, prefix="/api")
 app.include_router(tickets.router, prefix="/api")
 app.include_router(crews.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
+app.include_router(labels.router, prefix="/api")
+app.include_router(dispatcher.router, prefix="/api")
 
 
 @app.get("/")

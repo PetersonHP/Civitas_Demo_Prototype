@@ -1,6 +1,5 @@
 import { TicketPriority } from '../services/ticketService'
 import type { LocationCoordinates } from '../services/ticketService'
-import { SupportCrewType } from '../services/crewService'
 
 /**
  * Get marker color based on ticket priority

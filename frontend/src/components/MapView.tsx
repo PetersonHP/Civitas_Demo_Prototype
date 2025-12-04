@@ -13,21 +13,24 @@ interface MapViewProps {
   tickets: Ticket[]
   selectedTicket: Ticket | null
   onTicketSelect: (ticket: Ticket | null) => void
+  assignedCrews?: SupportCrew[]
+  showAllCrews?: boolean
+  hoveredCrewId?: string | null
 }
 
 /**
  * Main map component displaying ticket locations with Mapbox
  * Handles auto-fitting bounds, selection synchronization, and marker rendering
  */
-export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProps) => {
+export const MapView = ({ tickets, selectedTicket, onTicketSelect, assignedCrews = [], showAllCrews = false, hoveredCrewId = null }: MapViewProps) => {
   const mapRef = useRef<MapRef>(null)
   const { flyToLocation } = useMapFlyTo(mapRef)
   const [mapError, setMapError] = useState<string | null>(null)
   const [mapLoaded, setMapLoaded] = useState(false)
-  const [crews, setCrews] = useState<SupportCrew[]>([])
+  const [allCrews, setAllCrews] = useState<SupportCrew[]>([])
   const [selectedCrew, setSelectedCrew] = useState<SupportCrew | null>(null)
   const [showTickets, setShowTickets] = useState(true)
-  const [showCrews, setShowCrews] = useState(true)
+  const [showCrewsToggle, setShowCrewsToggle] = useState(false)
 
   const [viewState, setViewState] = useState({
     longitude: -98.5795, // Center of USA
@@ -41,18 +44,36 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
     [tickets]
   )
 
+  // Determine which crews to display based on props
+  const displayedCrews = useMemo(() => {
+    // If showAllCrews is true (user is in crew assignment mode), show all crews
+    if (showAllCrews) {
+      return allCrews
+    }
+    // If a ticket is selected and we have assigned crews, show only those
+    if (selectedTicket && assignedCrews.length > 0) {
+      return assignedCrews
+    }
+    // If showCrewsToggle is checked, show all crews
+    if (showCrewsToggle) {
+      return allCrews
+    }
+    // Otherwise show no crews
+    return []
+  }, [showAllCrews, selectedTicket, assignedCrews, showCrewsToggle, allCrews])
+
   // Filter crews with valid coordinates
   const crewsWithCoords = useMemo(
-    () => crews.filter(c => isValidCoordinates(c.location_coordinates)),
-    [crews]
+    () => displayedCrews.filter((c: SupportCrew) => isValidCoordinates(c.location_coordinates)),
+    [displayedCrews]
   )
 
-  // Fetch crews on mount
+  // Fetch all crews on mount
   useEffect(() => {
     const fetchCrews = async () => {
       try {
         const crewData = await crewService.getCrews()
-        setCrews(crewData)
+        setAllCrews(crewData)
       } catch (error) {
         console.error('Failed to fetch crews:', error)
       }
@@ -158,11 +179,11 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
               <Text fontSize="sm" color="gray.300">Show Tickets</Text>
             </Checkbox>
             <Checkbox
-              isChecked={showCrews}
-              onChange={(e) => setShowCrews(e.target.checked)}
+              isChecked={showCrewsToggle}
+              onChange={(e) => setShowCrewsToggle(e.target.checked)}
               colorScheme="purple"
             >
-              <Text fontSize="sm" color="gray.300">Show Crews</Text>
+              <Text fontSize="sm" color="gray.300">Show All Crews</Text>
             </Checkbox>
           </VStack>
         </VStack>
@@ -193,12 +214,14 @@ export const MapView = ({ tickets, selectedTicket, onTicketSelect }: MapViewProp
             onClick={onTicketSelect}
           />
         ))}
-        {mapLoaded && showCrews && crewsWithCoords.map(crew => (
+        {mapLoaded && crewsWithCoords.map((crew: SupportCrew) => (
           <CrewMarker
             key={crew.team_id}
             crew={crew}
             isSelected={selectedCrew?.team_id === crew.team_id}
             onClick={setSelectedCrew}
+            isHovered={hoveredCrewId === crew.team_id}
+            isDimmed={hoveredCrewId !== null && hoveredCrewId !== crew.team_id}
           />
         ))}
       </Map>
