@@ -7,19 +7,21 @@ interface CrewMarkerProps {
   crew: SupportCrew
   isSelected: boolean
   onClick: (crew: SupportCrew) => void
+  isHovered?: boolean
+  isDimmed?: boolean
 }
 
 /**
  * Individual crew marker component for the map
  * Displays a purple circular marker with crew type icon
  */
-export const CrewMarker = ({ crew, isSelected, onClick }: CrewMarkerProps) => {
+export const CrewMarker = ({ crew, isSelected, onClick, isHovered = false, isDimmed = false }: CrewMarkerProps) => {
   if (!crew.location_coordinates) return null
 
   const markerColor = '#9F7AEA' // Chakra purple.400
   const size = 24
-  const scale = isSelected ? 1.33 : 1
-  const opacity = 0.75
+  const scale = isSelected ? 1.33 : isHovered ? 1.25 : 1
+  const opacity = isDimmed ? 0.25 : 0.75
 
   const formatStatus = (status: string): string => {
     return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ')

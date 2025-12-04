@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, selectinload
-from sqlalchemy import desc
+from sqlalchemy import desc, func
 from typing import List, Optional
 from uuid import UUID
 from pydantic import BaseModel
@@ -17,8 +17,10 @@ from ..schemas.civitas import (
     SupportCrew,
     SupportCrewWithMembers,
 )
+from geoalchemy2 import Geometry
 from geoalchemy2.shape import to_shape
 from geoalchemy2.elements import WKTElement
+from geoalchemy2.functions import ST_Distance, ST_MakePoint, ST_SetSRID
 
 router = APIRouter(
     prefix="/crews",
@@ -85,6 +87,7 @@ def get_crews(
     limit: int = 100,
     status: Optional[SupportCrewStatus] = None,
     crew_type: Optional[SupportCrewType] = None,
+    search: str = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -95,6 +98,7 @@ def get_crews(
         limit: Maximum number of records to return
         status: Filter by crew status (active/inactive)
         crew_type: Filter by crew type
+        search: Search query for team_name and description
         db: Database session
 
     Returns:
@@ -105,6 +109,14 @@ def get_crews(
         - Location coordinates are serialized from PostGIS geometry
     """
     query = db.query(CrewModel)
+
+    # Apply search if provided
+    if search:
+        search_pattern = f"%{search}%"
+        query = query.filter(
+            (CrewModel.team_name.ilike(search_pattern)) |
+            (CrewModel.description.ilike(search_pattern))
+        )
 
     # Apply filters if provided
     if status:
@@ -128,3 +140,64 @@ def get_crews(
         result.append(crew_dict)
 
     return result
+
+
+@router.get("/nearest/search", response_model=List[SupportCrew])
+def get_nearest_crews(
+    lat: float,
+    lng: float,
+    k: int = 5,
+    status: Optional[SupportCrewStatus] = None,
+    crew_type: Optional[SupportCrewType] = None,
+    db: Session = Depends(get_db)
+):
+    """
+    Get K nearest crews to a given location.
+
+    Args:
+        lat: Latitude of the reference point
+        lng: Longitude of the reference point
+        k: Number of nearest crews to return (default: 5)
+        status: Filter by crew status (active/inactive)
+        crew_type: Filter by crew type
+        db: Database session
+
+    Returns:
+        List of K nearest crews ordered by distance (closest first)
+
+    Notes:
+        - Only crews with location coordinates are considered
+        - Distance is calculated using PostGIS ST_Distance (in degrees)
+        - Results are ordered by distance ascending
+    """
+    # Create a point from the provided coordinates with SRID 4326 (WGS84)
+    reference_point = ST_SetSRID(ST_MakePoint(lng, lat), 4326, type_=Geometry)
+
+    # Calculate distance and add it to the query
+    query = db.query(
+        CrewModel,
+        ST_Distance(CrewModel.location_coordinates, reference_point).label('distance')
+    ).filter(
+        CrewModel.location_coordinates.isnot(None)
+    )
+
+    # Apply filters if provided
+    if status:
+        query = query.filter(CrewModel.status == status)
+    if crew_type:
+        query = query.filter(CrewModel.crew_type == crew_type)
+
+    # Order by distance and limit to k results
+    results = query.order_by('distance').limit(k).all()
+
+    # Serialize location coordinates for each crew
+    crew_list = []
+    for crew, distance in results:
+        crew_dict = {
+            **crew.__dict__,
+            "location_coordinates": serialize_location(crew.location_coordinates),
+            "distance": float(distance) if distance else None
+        }
+        crew_list.append(crew_dict)
+
+    return crew_list

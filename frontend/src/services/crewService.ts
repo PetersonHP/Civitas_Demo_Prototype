@@ -34,13 +34,14 @@ export enum SupportCrewStatus {
 
 export const crewService = {
   /**
-   * Get all crews
+   * Get all crews with optional search
    */
   getCrews: async (params?: {
     skip?: number
     limit?: number
     status?: SupportCrewStatus
     crew_type?: SupportCrewType
+    search?: string
   }): Promise<SupportCrew[]> => {
     const response = await api.get<SupportCrew[]>('/api/crews/', { params })
     return response.data

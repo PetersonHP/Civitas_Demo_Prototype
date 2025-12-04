@@ -6,6 +6,7 @@ uvicorn[standard]==0.32.0
 sqlalchemy==2.0.36
 psycopg2-binary==2.9.10
 alembic==1.14.0
+geoalchemy2==0.15.2
 
 # Environment and Configuration
 python-dotenv==1.0.1
@@ -13,6 +14,9 @@ pydantic-settings==2.6.1
 
 # CORS and Security
 python-multipart==0.0.17
+
+# AI / LLM
+anthropic==0.42.0
 
 # Development and Testing
 pytest==8.3.4

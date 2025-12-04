@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     # Security
     secret_key: str = "change-this-in-production"
 
+    # AI / LLM
+    anthropic_api_key: str = ""
+
     class Config:
         env_file = ".env"
         case_sensitive = False

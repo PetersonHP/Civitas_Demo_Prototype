@@ -182,17 +182,28 @@ def get_ticket_by_id(ticket_id: UUID, db: Session = Depends(get_db)):
     if ticket is None:
         raise HTTPException(status_code=404, detail="Ticket not found")
 
-    # Serialize the location coordinates
+    # Serialize the location coordinates for the ticket
     ticket_dict = {
         **ticket.__dict__,
         "location_coordinates": serialize_location(ticket.location_coordinates)
     }
 
+    # Serialize location coordinates for crew assignees
+    if ticket.crew_assignees:
+        serialized_crews = []
+        for crew in ticket.crew_assignees:
+            crew_dict = {
+                **crew.__dict__,
+                "location_coordinates": serialize_location(crew.location_coordinates)
+            }
+            serialized_crews.append(crew_dict)
+        ticket_dict["crew_assignees"] = serialized_crews
+
     # Convert to response model
     return ticket_dict
 
 
-@router.get("/", response_model=List[Ticket])
+@router.get("/", response_model=List[TicketWithRelations])
 def get_tickets(
     skip: int = 0,
     limit: int = 100,
@@ -211,13 +222,18 @@ def get_tickets(
         db: Database session
 
     Returns:
-        List of tickets ordered by time_updated (descending)
+        List of tickets with relations ordered by time_updated (descending)
     """
     # Limit max page size
     if limit > 100:
         limit = 100
 
-    query = db.query(TicketModel)
+    query = db.query(TicketModel).options(
+        selectinload(TicketModel.user_assignees),
+        selectinload(TicketModel.crew_assignees),
+        selectinload(TicketModel.reporter),
+        selectinload(TicketModel.labels)
+    )
 
     # Filter by status if provided
     if status is not None:
@@ -237,13 +253,25 @@ def get_tickets(
         .all()
     )
 
-    # Serialize location coordinates for each ticket
+    # Serialize location coordinates for each ticket and crew
     result = []
     for ticket in tickets:
         ticket_dict = {
             **ticket.__dict__,
             "location_coordinates": serialize_location(ticket.location_coordinates)
         }
+
+        # Serialize location coordinates for crew assignees
+        if ticket.crew_assignees:
+            serialized_crews = []
+            for crew in ticket.crew_assignees:
+                crew_dict = {
+                    **crew.__dict__,
+                    "location_coordinates": serialize_location(crew.location_coordinates)
+                }
+                serialized_crews.append(crew_dict)
+            ticket_dict["crew_assignees"] = serialized_crews
+
         result.append(ticket_dict)
 
     return result
