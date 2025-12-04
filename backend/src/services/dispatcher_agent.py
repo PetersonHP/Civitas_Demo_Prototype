@@ -333,7 +333,7 @@ def dispatch_ticket_with_ai(
     ticket: Dict[str, Any],
     db: Session,
     api_key: str = None,
-    model: str = "claude-sonnet-4-5-20250929"
+    model: str = "claude-haiku-4-5-20251001"
 ) -> Dict[str, Any]:
     """
     Process a ticket using the AI dispatcher agent.

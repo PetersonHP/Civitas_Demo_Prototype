@@ -25,6 +25,15 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  Textarea,
+  useDisclosure,
 } from '@chakra-ui/react'
 import { ArrowBackIcon, CloseIcon, AddIcon } from '@chakra-ui/icons'
 import { FaExclamationTriangle, FaHardHat, FaRoad, FaSnowplow, FaTrashAlt, FaTree, FaWater } from 'react-icons/fa'
@@ -40,6 +49,7 @@ import {
 import { userService, CivitasUser } from '../services/userService'
 import { labelService, Label as LabelType } from '../services/labelService'
 import { crewService } from '../services/crewService'
+import { dispatchTicket, DispatchTicketResponse } from '../services/dispatcherService'
 import { MapView } from './MapView'
 import { CommentSection } from './CommentSection'
 
@@ -209,6 +219,16 @@ export const TicketDashboard = () => {
   // Filter states
   const [selectedStatus, setSelectedStatus] = useState<TicketStatus | undefined>(undefined)
   const [selectedPriority, setSelectedPriority] = useState<TicketPriority | undefined>(undefined)
+
+  // AI Response states
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiResponse, setAiResponse] = useState<DispatchTicketResponse | null>(null)
+  const [aiResponseData, setAiResponseData] = useState<{
+    users: CivitasUser[]
+    crews: SupportCrew[]
+    labels: LabelType[]
+  } | null>(null)
+  const { isOpen: isAiModalOpen, onOpen: onAiModalOpen, onClose: onAiModalClose } = useDisclosure()
 
   const civitasBg = useColorModeValue('white', '#4b2e83')
   const filterBg = useColorModeValue('white', 'gray.700')
@@ -639,6 +659,110 @@ export const TicketDashboard = () => {
     }
   }
 
+  // Handle generating AI response
+  const handleGenerateAiResponse = async () => {
+    if (!openedTicket) return
+
+    onAiModalOpen()
+    setAiResponse(null)
+    setAiResponseData(null)
+
+    try {
+      setAiLoading(true)
+      const response = await dispatchTicket(openedTicket.ticket_id)
+      setAiResponse(response)
+
+      // Fetch full details for users, crews, and labels
+      const [users, crews, labels] = await Promise.all([
+        Promise.all(response.user_assignees.map(id => userService.getUser(id))),
+        Promise.all(response.crew_assignees.map(id => crewService.getCrew(id))),
+        Promise.all(response.labels.map(id => labelService.getLabel(id))),
+      ])
+
+      setAiResponseData({ users, crews, labels })
+    } catch (err) {
+      console.error('Failed to generate AI response:', err)
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to generate AI response',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+      onAiModalClose()
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  // Handle approving AI response
+  const handleApproveAiResponse = async () => {
+    if (!openedTicket || !aiResponse || !aiResponseData) return
+
+    try {
+      // Update ticket status and priority
+      await ticketService.updateTicket(openedTicket.ticket_id, {
+        status: aiResponse.status as TicketStatus,
+        priority: aiResponse.priority as TicketPriority,
+      })
+
+      // Assign users
+      if (aiResponse.user_assignees.length > 0) {
+        await ticketService.assignUsers(openedTicket.ticket_id, aiResponse.user_assignees)
+      }
+
+      // Assign crews
+      if (aiResponse.crew_assignees.length > 0) {
+        await ticketService.assignCrews(openedTicket.ticket_id, aiResponse.crew_assignees)
+      }
+
+      // Set labels
+      if (aiResponse.labels.length > 0) {
+        await ticketService.setLabels(openedTicket.ticket_id, aiResponse.labels)
+      }
+
+      // Create comment
+      if (aiResponse.comment.comment_body) {
+        await ticketService.createComment(openedTicket.ticket_id, {
+          comment_body: aiResponse.comment.comment_body,
+          ticket_id: openedTicket.ticket_id,
+          commenter: 'b3cdcf8f-3c7a-4001-b7fb-646e909d2fa9', // TODO: Use actual logged-in user ID
+        })
+      }
+
+      // Refresh the ticket data
+      await refreshTicket(openedTicket.ticket_id)
+
+      toast({
+        title: 'AI Response Applied',
+        description: 'The AI recommendations have been applied to the ticket',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      })
+
+      setAiResponse(null)
+      setAiResponseData(null)
+      onAiModalClose()
+    } catch (err) {
+      console.error('Failed to apply AI response:', err)
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to apply AI response',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      })
+    }
+  }
+
+  // Handle rejecting AI response
+  const handleRejectAiResponse = () => {
+    setAiResponse(null)
+    setAiResponseData(null)
+    onAiModalClose()
+  }
+
   return (
     <Flex direction="column" h="100vh">
       {/* Header */}
@@ -725,15 +849,33 @@ export const TicketDashboard = () => {
             {openedTicket ? (
               /* Ticket detail view */
               <VStack align="stretch" spacing={4}>
-                <Button
-                  leftIcon={<ArrowBackIcon />}
-                  onClick={() => setOpenedTicket(null)}
-                  colorScheme="blue"
-                  variant="outline"
-                  size="sm"
-                  alignSelf="flex-start"
-                >
-                </Button>
+                <Flex justify="space-between" align="center">
+                  <Button
+                    leftIcon={<ArrowBackIcon />}
+                    onClick={() => setOpenedTicket(null)}
+                    colorScheme="blue"
+                    variant="outline"
+                    size="sm"
+                  >
+                  </Button>
+                  <Button
+                    onClick={handleGenerateAiResponse}
+                    bg="#4b2e83"
+                    color="white"
+                    size="sm"
+                    leftIcon={
+                      <Image
+                        src="/Civitas_white.png"
+                        alt="Civitas"
+                        h="16px"
+                        objectFit="contain"
+                      />
+                    }
+                    _hover={{ bg: '#3d2569' }}
+                  >
+                    Dispatch with Civitas AI
+                  </Button>
+                </Flex>
                 <Box>
                   <Heading size="lg" mb={2}>
                     {openedTicket.ticket_subject}
@@ -1172,6 +1314,189 @@ export const TicketDashboard = () => {
           </Box>
         </Flex>
       </Flex>
+
+      {/* AI Response Modal */}
+      <Modal isOpen={isAiModalOpen} onClose={onAiModalClose} size="2xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Civitas AI Dispatcher Proposal</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody pb={6}>
+            {aiLoading && (
+              <VStack spacing={4} py={8}>
+                <Spinner size="xl" color="purple.500" thickness="4px" />
+                <Text fontSize="lg" color="gray.600">
+                  Generating response...
+                </Text>
+              </VStack>
+            )}
+
+            {!aiLoading && aiResponse && aiResponseData && (
+              <VStack align="stretch" spacing={4}>
+                {/* Status and Priority */}
+                <Box>
+                  <Text fontSize="sm" fontWeight="semibold" mb={2}>
+                    Status & Priority
+                  </Text>
+                  <HStack spacing={2}>
+                    <Badge colorScheme={getStatusColor(aiResponse.status as TicketStatus)} fontSize="sm">
+                      {formatStatus(aiResponse.status)}
+                    </Badge>
+                    <Badge colorScheme={getPriorityColor(aiResponse.priority as TicketPriority)} fontSize="sm">
+                      {formatPriority(aiResponse.priority)}
+                    </Badge>
+                  </HStack>
+                </Box>
+
+                {/* Crew Assignments */}
+                {aiResponseData.crews.length > 0 && (
+                  <Box>
+                    <Text fontSize="sm" fontWeight="semibold" mb={2}>
+                      Crew Assignments
+                    </Text>
+                    <VStack align="stretch" spacing={1}>
+                      {aiResponseData.crews.map((crew) => (
+                        <HStack
+                          key={crew.team_id}
+                          p={2}
+                          bg={useColorModeValue('purple.50', 'purple.900')}
+                          borderRadius="md"
+                        >
+                          <Box
+                            bg="purple.400"
+                            color="white"
+                            p={1.5}
+                            borderRadius="md"
+                            display="flex"
+                            alignItems="center"
+                            justifyContent="center"
+                          >
+                            {getCrewIcon(crew.crew_type)}
+                          </Box>
+                          <VStack align="start" spacing={0}>
+                            <Text fontSize="sm" fontWeight="medium">
+                              {crew.team_name}
+                            </Text>
+                            <Text fontSize="xs" color="gray.500">
+                              {formatCrewType(crew.crew_type)}
+                            </Text>
+                          </VStack>
+                        </HStack>
+                      ))}
+                    </VStack>
+                  </Box>
+                )}
+
+                {/* User Assignments */}
+                {aiResponseData.users.length > 0 && (
+                  <Box>
+                    <Text fontSize="sm" fontWeight="semibold" mb={2}>
+                      User Assignments
+                    </Text>
+                    <VStack align="stretch" spacing={1}>
+                      {aiResponseData.users.map((user) => (
+                        <HStack
+                          key={user.user_id}
+                          p={2}
+                          bg={useColorModeValue('gray.50', 'gray.700')}
+                          borderRadius="md"
+                        >
+                          <Text fontSize="sm" fontWeight="medium">
+                            {user.firstname} {user.lastname}
+                          </Text>
+                          {user.email && (
+                            <Text fontSize="xs" color="gray.500">
+                              ({user.email})
+                            </Text>
+                          )}
+                        </HStack>
+                      ))}
+                    </VStack>
+                  </Box>
+                )}
+
+                {/* Labels */}
+                {aiResponseData.labels.length > 0 && (
+                  <Box>
+                    <Text fontSize="sm" fontWeight="semibold" mb={2}>
+                      Labels
+                    </Text>
+                    <HStack spacing={2} wrap="wrap">
+                      {aiResponseData.labels.map((label) => (
+                        <Badge
+                          key={label.label_id}
+                          style={{ backgroundColor: label.color_hex }}
+                          color="white"
+                          fontSize="sm"
+                        >
+                          {label.label_name}
+                        </Badge>
+                      ))}
+                    </HStack>
+                  </Box>
+                )}
+
+                {/* Initial Comment */}
+                <Box>
+                  <Text fontSize="sm" fontWeight="semibold" mb={2}>
+                    Initial Comment to User
+                  </Text>
+                  <Box
+                    p={3}
+                    bg={useColorModeValue('blue.50', 'blue.900')}
+                    borderRadius="md"
+                    borderLeft="4px"
+                    borderColor="blue.400"
+                  >
+                    <Text fontSize="sm" whiteSpace="pre-wrap">
+                      {aiResponse.comment.comment_body}
+                    </Text>
+                  </Box>
+                </Box>
+
+                {/* Justification */}
+                <Box>
+                  <Text fontSize="sm" fontWeight="semibold" mb={2}>
+                    AI Justification
+                  </Text>
+                  <Box
+                    p={3}
+                    bg={useColorModeValue('gray.50', 'gray.700')}
+                    borderRadius="md"
+                  >
+                    <Text fontSize="sm" whiteSpace="pre-wrap" color="gray.400">
+                      {aiResponse.justification}
+                    </Text>
+                  </Box>
+                </Box>
+
+                {/* Approve and Reject Buttons */}
+                <HStack spacing={3} pt={4}>
+                  <Button
+                    flex={1}
+                    bg="#4b2e83"
+                    color="white"
+                    size="lg"
+                    onClick={handleApproveAiResponse}
+                    _hover={{ bg: '#3d2569' }}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    flex={1}
+                    variant="outline"
+                    colorScheme="red"
+                    size="lg"
+                    onClick={handleRejectAiResponse}
+                  >
+                    Reject
+                  </Button>
+                </HStack>
+              </VStack>
+            )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Flex>
   )
 }
