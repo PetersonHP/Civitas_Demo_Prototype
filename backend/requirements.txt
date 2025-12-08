@@ -17,6 +17,7 @@ python-multipart==0.0.17
 
 # AI / LLM
 anthropic==0.42.0
+groq==0.12.0
 
 # Development and Testing
 pytest==8.3.4
