@@ -1,0 +1,70 @@
+Looking at your situation - you have a working app but need results by Sunday morning for your Princeton CS IW presentation. Here's a focused plan to get meaningful results in ~2.5 days:
+
+## Immediate Action Plan (Time-Boxed)
+
+### Friday (12 hours of work)
+**Create a Test Dataset & Benchmark Performance**
+
+1. **Generate 30-50 realistic test tickets** (3 hours)
+   - Cover all ticket types: potholes, stray animals, broken equipment, etc.
+   - Include edge cases: unclear descriptions, wrong locations, etc.
+   - Save ground truth labels (correct priority, crew type, status)
+
+2. **Run automated evaluation** (4 hours)
+   - Process all tickets through your AI
+   - Measure:
+     - **Classification accuracy**: Does AI pick right crew type? (% correct)
+     - **Priority assignment accuracy**: Correct priority level? (% correct)
+     - **Response time**: How fast does system process a ticket? (seconds)
+     - **Dispatch optimization**: Distance from assigned crew to location (miles)
+   - Compare AI suggestions vs. manual baseline (what a human dispatcher would do)
+
+3. **Collect system metrics** (2 hours)
+   - Average API response times
+   - Database query performance
+   - Success/failure rates for AI operations
+
+### Saturday (8 hours of work)
+**User Testing & Qualitative Feedback**
+
+4. **Get 8-10 users to test** (6 hours)
+   - Friends, classmates, anyone available
+   - Give them scenarios: "Report a pothole", "Dispatch this ticket"
+   - Use **System Usability Scale (SUS)** - standard 10-question survey
+   - Collect: completion time, error rates, qualitative feedback
+
+5. **Create case studies** (2 hours)
+   - Pick 3 compelling examples showing full workflow
+   - Before/after comparisons (traditional vs. Civitas)
+
+### Sunday Morning (2 hours)
+**Package Results**
+
+6. **Create results visualizations**
+   - Bar charts: AI accuracy metrics
+   - Table: Performance comparison
+   - User satisfaction scores
+   - Screenshots of successful dispatches
+
+## Key Metrics to Present
+
+**Quantitative:**
+- AI Classification Accuracy: X% correct crew assignments
+- Priority Assignment: X% agreement with ground truth
+- Average Processing Time: X seconds per ticket
+- SUS Score: X/100 (68+ is above average)
+
+**Qualitative:**
+- "Users found the interface intuitive" (3.8/5 average rating)
+- "AI suggestions were helpful X% of the time"
+- Case studies showing successful end-to-end scenarios
+
+## Realistic Expectations
+
+For an IW project with 2.5 days:
+- **Don't aim for perfection** - 70%+ accuracy is good for a prototype
+- **Small sample size is OK** - 30 test tickets and 8 users is sufficient for IW
+- **Focus on demonstrating value** - show it works better than manual process
+- **Acknowledge limitations** - be honest about what still needs work
+
+This gives you concrete numbers to put in your "Results" section while being achievable in your timeframe. Want me to help you create the test dataset or evaluation scripts?
