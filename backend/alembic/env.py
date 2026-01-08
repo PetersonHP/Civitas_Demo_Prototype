@@ -20,7 +20,11 @@ load_dotenv()
 config = context.config
 
 # Override sqlalchemy.url with the one from environment variables
-config.set_main_option('sqlalchemy.url', os.getenv('DATABASE_URL'))
+# Heroku uses postgres:// but SQLAlchemy needs postgresql://
+database_url = os.getenv('DATABASE_URL')
+if database_url and database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+config.set_main_option('sqlalchemy.url', database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
