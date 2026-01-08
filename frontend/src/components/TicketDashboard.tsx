@@ -30,9 +30,7 @@ import {
   ModalContent,
   ModalHeader,
   ModalBody,
-  ModalFooter,
   ModalCloseButton,
-  Textarea,
   useDisclosure,
 } from '@chakra-ui/react'
 import { ArrowBackIcon, CloseIcon, AddIcon } from '@chakra-ui/icons'
