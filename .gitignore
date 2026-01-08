@@ -49,6 +49,9 @@ frontend/build/
 frontend/.env
 frontend/.env.local
 
+# Node modules (root level - for Heroku build)
+node_modules/
+
 # Logs
 *.log
 logs/
