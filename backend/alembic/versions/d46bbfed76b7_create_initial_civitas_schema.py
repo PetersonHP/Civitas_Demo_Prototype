@@ -50,16 +50,6 @@ def upgrade() -> None:
     op.create_index(op.f('ix_civitas_user_google_id'), 'civitas_user', ['google_id'], unique=True)
     op.create_index(op.f('ix_civitas_user_phone_number'), 'civitas_user', ['phone_number'], unique=False)
     op.create_index(op.f('ix_civitas_user_user_id'), 'civitas_user', ['user_id'], unique=False)
-    op.create_table('items',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('name', sa.String(), nullable=True),
-    sa.Column('description', sa.String(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_items_id'), 'items', ['id'], unique=False)
-    op.create_index(op.f('ix_items_name'), 'items', ['name'], unique=False)
     op.create_table('support_crew',
     sa.Column('team_id', sa.UUID(), nullable=False),
     sa.Column('team_name', sa.String(), nullable=False),
