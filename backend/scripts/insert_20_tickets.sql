@@ -1,7 +1,7 @@
 -- Insert 20 NYC 311 tickets into the tickets table
 -- Run with: heroku pg:psql --app=civitas-demo < backend/scripts/insert_20_tickets.sql
 
-INSERT INTO tickets (ticket_subject, ticket_body, origin, status, priority, reporter_id, location_coordinates) VALUES
+INSERT INTO ticket (ticket_subject, ticket_body, origin, status, priority, reporter_id, location_coordinates) VALUES
 ('Obstruction on 32 Street in Queens (unique_key: 67078272)', 'I am reporting a cone obstruction on 32 Street in the Queens borough. The cone is currently blocking a portion of the street, potentially causing a hazard for drivers and pedestrians. I am concerned that if this issue is not addressed, it may lead to accidents or disruptions in traffic flow. I would appreciate it if the city could remove or relocate the cone as soon as possible to ensure public safety.', 'phone', 'awaiting response', 'low', 'b3cdcf8f-3c7a-4001-b7fb-646e909d2fa9', ST_SetSRID(ST_MakePoint(-73.92458792215176, 40.761599665302725), 4326)),
 
 ('Damaged Guard Rail on Arthur Kill Road (unique_key: 67080953)', 'I am reporting a damaged guard rail on Arthur Kill Road, which poses a safety hazard to drivers and pedestrians. The guard rail appears to be bent and loose, and I am concerned that it could cause an accident if not repaired. I have noticed this issue while driving on Arthur Kill Road near the 3044 address, and I hope it can be addressed as soon as possible. I would appreciate it if the relevant authorities could inspect and repair the guard rail to ensure public safety.', 'phone', 'awaiting response', 'high', 'b3cdcf8f-3c7a-4001-b7fb-646e909d2fa9', ST_SetSRID(ST_MakePoint(-74.23128859672183, 40.54491883453047), 4326)),
