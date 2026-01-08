@@ -1,4 +1,15 @@
 {
+  "name": "civitas-demo",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "18.x",
+    "npm": "10.x"
+  },
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "postinstall": "npm run build"
+  },
   "dependencies": {
     "react-icons": "^5.5.0"
   }

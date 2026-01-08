@@ -1,6 +1,10 @@
 import axios from 'axios'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// In production (served by backend), use same origin
+// In development, use VITE_API_URL or default to localhost:8000
+const API_URL = import.meta.env.PROD
+  ? '' // Same origin in production
+  : (import.meta.env.VITE_API_URL || 'http://localhost:8000')
 
 const api = axios.create({
   baseURL: API_URL,

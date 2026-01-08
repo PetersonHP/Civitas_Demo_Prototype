@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+import os
 
 
 class Settings(BaseSettings):
@@ -7,12 +8,15 @@ class Settings(BaseSettings):
 
     # Application
     app_name: str = "Civitas Demo"
-    debug: bool = True
+    debug: bool = False  # Changed to False for production
 
-    # Database
-    database_url: str = "postgresql://civitas_user:password@localhost:5432/civitas_db"
+    # Database - Handle Heroku's DATABASE_URL
+    database_url: str = os.getenv(
+        "DATABASE_URL",
+        "postgresql://civitas_user:password@localhost:5432/civitas_db"
+    )
 
-    # CORS
+    # CORS - Will be updated via environment variable
     allowed_origins: str = "http://localhost:5173,http://localhost:3000"
 
     # Security
@@ -25,6 +29,12 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Heroku uses postgres:// but SQLAlchemy needs postgresql://
+        if self.database_url and self.database_url.startswith("postgres://"):
+            self.database_url = self.database_url.replace("postgres://", "postgresql://", 1)
 
 
 @lru_cache()
