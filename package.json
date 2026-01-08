@@ -7,7 +7,7 @@
     "npm": "10.x"
   },
   "scripts": {
-    "build": "cd frontend && npm install --include=dev && npm run build",
+    "build": "cd frontend && npm install --include=dev && VITE_MAPBOX_ACCESS_TOKEN=$VITE_MAPBOX_ACCESS_TOKEN npm run build",
     "postinstall": "npm run build"
   },
   "dependencies": {
