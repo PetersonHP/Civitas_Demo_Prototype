@@ -6,8 +6,6 @@ backend/tests/
 backend/scripts/
 backend/data/
 backend/logs/
-frontend/node_modules/
-frontend/src/
 *.log
 .vscode/
 .idea/
